@@ -1,0 +1,11 @@
+@charset "UTF-8";
+@namespace d url(http://www.apple.com/DTDs/DictionaryService-1.0.rng);
+
+d|entry {
+}
+
+h1 { font-size: 1.5em; margin: 1em 0 .5em; }
+p { font-size: 1em; margin: 0 0 .5em; }
+cls,expl,opt { font-size: .8em; font-weight: normal; }
+cls { font-family: monospace; color: #666; }
+expl { color: #666; }

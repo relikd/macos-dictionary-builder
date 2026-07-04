@@ -1,0 +1,2 @@
+include src/resources/*
+exclude src/resources/.DS_Store

@@ -1,0 +1,38 @@
+[build-system]
+requires = ['setuptools >= 77.0.3']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'macos-dictionary-builder'
+description = 'Converts a tab-separated dictionary text file into a macOS .dictionary bundle.'
+dynamic = ['version']
+authors = [{ name='relikd' }]
+requires-python = '>=3.7'
+keywords = [
+    'dictionary',
+    'translation',
+    'language',
+]
+license = 'MIT'
+license-files = ['LICEN[CS]E*']
+readme = 'README.md'
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'Environment :: Console',
+    'Environment :: MacOS X',
+    'Operating System :: MacOS',
+    'Operating System :: POSIX',
+    'Programming Language :: Python :: 3',
+]
+
+[project.urls]
+Homepage = 'https://github.com/relikd/macos-dictionary-builder'
+
+[tool.setuptools.dynamic]
+version = {attr = 'macos_dictionary_builder.__version__'}
+
+[project.scripts]
+macos-dictionary-builder = 'macos_dictionary_builder.cli:main'
+
+[tool.setuptools]
+package-dir = {'macos_dictionary_builder' = 'src'}

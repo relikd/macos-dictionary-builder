@@ -12,7 +12,7 @@ Python script to convert a tabular text file into a macOS `.dictionary` bundle.
 ## Install
 
 ```sh
-pip3 install macos_dictionary_builder
+pip3 install macos-dictionary-builder
 ```
 
 

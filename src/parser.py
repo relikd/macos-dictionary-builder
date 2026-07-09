@@ -308,12 +308,14 @@ def _generateEntry(idn: int, plainTitle: str, store: Grouping) -> str:
     data = store.sortedEntries(plainTitle)
     # d:title is shown in Spotlight as search term title
     rv = f'<d:entry id="{idn}" d:title="{plainTitle}">'
-    # Generate alternative versions (with optional parenthesis in tact)
-    alternatives = set(x.word.optional for x in data)
+
     # d:value is what can be found by search
-    for term in sorted(alternatives.union([plainTitle])):
+    searchTerms = set([plainTitle]).union(x.word.optional for x in data)
+    for term in sorted(searchTerms):
         if term:
-            rv += f'<d:index d:value="{term}"/>'
+            # Apple's `build_key_index` has a limit of 128 characters
+            rv += f'<d:index d:value="{term[:127]}"/>'
+
     # TODO: remove verbose prefix, "to be ..."
 
     # generate visible part (in Dictionary app)

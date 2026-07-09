@@ -234,17 +234,26 @@ class Grouping(dict[str, list[int]]):
 #
 ######################################################
 
-def readDictTxt(infile: TextIO) -> list['Line']:
+PROGRESS_INTERVAL = 0x3FFF  # every 16k
+
+
+def readDictTxt(infile: TextIO, progress: bool = True) -> list['Line']:
     ''' Parse input file and generate in-memory list (calls `readlines`). '''
     rv = []  # type: list[Line]
     for lineNo, line in enumerate(infile.readlines(), 1):
+        if progress and lineNo & PROGRESS_INTERVAL == 0:
+            print(f'\rreading line {lineNo}', end='')
         line = line.strip(' \n\r')  # keep tabs
         if line and not line.startswith('#'):  # ignore empty & comments
             rv.append(Line(lineNo, line))
+    if progress:
+        print(f'\rdone reading. {lineNo} lines')
     return rv
 
 
-def writeDictXML(data: list[Line], toFile: str, *, no_reverse: bool) -> int:
+def writeDictXML(
+    data: list[Line], toFile: str, *, no_reverse: bool, progress: bool = True
+) -> int:
     ''' Iterate in-memory dictionary tree and write to file. '''
     tmp_file = toFile + '.tmp'
     if os.path.exists(tmp_file):
@@ -258,21 +267,29 @@ def writeDictXML(data: list[Line], toFile: str, *, no_reverse: bool) -> int:
 '''.strip())
         idx = 0
         for inverse in [False] if no_reverse else [False, True]:
+            if progress:
+                print('\rprepare translation pairs',
+                      '(reverse)' if inverse else '')
             grp = Grouping(data, inverse)
             for key in sorted(grp.keys()):
                 if not key:
                     continue  # ignore sayings
                 idx += 1
                 fp.write('\n' + _generateEntry(idx, key, grp))
+                if progress and idx & PROGRESS_INTERVAL == 0:
+                    print(f'\rwrite entry {idx}', end='')
             unref[inverse] = grp.unreferenced()
             del grp  # free up memory immediatelly
 
         fp.write('\n</d:dictionary>')
 
+    if progress:
+        print(f'\rdone writing. {idx} entries')
+
     # atomic write
     os.rename(tmp_file, toFile)
 
-    ur = unref[False] & unref.get(True, set())
+    ur = unref.get(False, set()) & unref.get(True, set())
     if ur:
         print(f'WARN: {len(ur)} unreferenced entries: (line no: {sorted(ur)})')
     return idx

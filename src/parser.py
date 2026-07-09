@@ -263,11 +263,11 @@ def writeDictXML(data: list[Line], toFile: str, *, no_reverse: bool) -> int:
                 if not key:
                     continue  # ignore sayings
                 idx += 1
-                fp.write('\n\n' + _generateEntry(idx, key, grp))
+                fp.write('\n' + _generateEntry(idx, key, grp))
             unref[inverse] = grp.unreferenced()
             del grp  # free up memory immediatelly
 
-        fp.write('\n\n</d:dictionary>')
+        fp.write('\n</d:dictionary>')
 
     # atomic write
     os.rename(tmp_file, toFile)

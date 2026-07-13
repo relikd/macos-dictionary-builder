@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import re
+import bisect
 import argparse
 from dataclasses import dataclass
 from typing import TextIO, NamedTuple
@@ -213,34 +214,28 @@ class Pair(NamedTuple):
     trans: Word
 
 
-class Grouping(dict[str, list[int]]):
-    def __init__(self, data: list[Line], inverse: bool):
-        self.data = data
-        self.inverse = inverse
+class Grouping(dict[str, list[Pair]]):
+    def __init__(
+        self, data: list[Line], *, forward: bool = True, backward: bool = True,
+    ):
+        self.unreferenced = []  # type: list[Line]
 
-        def fn(word: Word, index: int) -> None:
+        def fn(a: Word, b: Word) -> bool:
+            ''' Returns `True` if referenced '''
             # abbreviations get their own search term
-            for w in [word.plain] + word.abbrevs:
-                self.setdefault(w, []).append(index)
+            rv = False
+            for w in [a.plain] + a.abbrevs:
+                key = _indexSafe(w)
+                if key:
+                    bisect.insort(self.setdefault(key, []), Pair(a, b))
+                    rv = True
+            return rv
 
-        if inverse:
-            for i, entry in enumerate(data):
-                fn(entry.trans, i)
-        else:
-            for i, entry in enumerate(data):
-                fn(entry.word, i)
-
-    def sortedEntries(self, key: str) -> list[Pair]:
-        ''' If `inverse`, return `(trans, word)` else `(word, trans)`. '''
-        gen = (self.data[x] for x in self[key])
-        if self.inverse:
-            return sorted(map(lambda x: Pair(x.trans, x.word), gen))
-        else:
-            return sorted(map(lambda x: Pair(x.word, x.trans), gen))
-
-    def unreferenced(self) -> set[int]:
-        ''' Return line numbers for omitted entries. '''
-        return set(self.data[x].lineNo for x in self.get('', []))
+        for entry in data:
+            refA = fn(entry.word, entry.trans) if forward else False
+            refB = fn(entry.trans, entry.word) if backward else False
+            if not (refA or refB):
+                self.unreferenced.append(entry)
 
 
 ######################################################
@@ -274,27 +269,21 @@ def writeDictXML(
     if os.path.exists(tmp_file):
         os.remove(tmp_file)
 
-    unref = {}  # type: dict[bool, set[int]]
+    if progress:
+        print('prepare translation pairs ...')
+    grp = Grouping(data, forward=True, backward=not no_reverse)
+    del data
+
     with open(tmp_file, 'w', encoding='utf8') as fp:
         fp.write('''
 <?xml version="1.0" encoding="UTF-8"?>
 <d:dictionary xmlns="http://www.w3.org/1999/xhtml" xmlns:d="http://www.apple.com/DTDs/DictionaryService-1.0.rng">
 '''.strip())
-        idx = 0
-        for inverse in [False] if no_reverse else [False, True]:
-            if progress:
-                print('\rprepare translation pairs',
-                      '(reverse)' if inverse else '')
-            grp = Grouping(data, inverse)
-            for key in sorted(grp.keys()):
-                if not key:
-                    continue  # ignore sayings
-                idx += 1
-                fp.write('\n' + _generateEntry(idx, key, grp))
-                if progress and idx & PROGRESS_INTERVAL == 0:
-                    print(f'\rwrite entry {idx}', end='')
-            unref[inverse] = grp.unreferenced()
-            del grp  # free up memory immediatelly
+
+        for idx, key in enumerate(sorted(grp.keys()), 1):
+            fp.write('\n' + _generateEntry(idx, key, grp.pop(key)))
+            if progress and idx & PROGRESS_INTERVAL == 0:
+                print(f'\rwrite entry {idx}', end='')
 
         fp.write('\n</d:dictionary>')
 
@@ -304,9 +293,9 @@ def writeDictXML(
     # atomic write
     os.rename(tmp_file, toFile)
 
-    ur = unref.get(False, set()) & unref.get(True, set())
-    if ur:
-        print(f'WARN: {len(ur)} unreferenced entries: (line no: {sorted(ur)})')
+    if grp.unreferenced:
+        print('WARN: {} unreferenced entries: (line no: {})'.format(
+            len(grp.unreferenced), [x.lineNo for x in grp.unreferenced]))
     return idx
 
 
@@ -318,14 +307,13 @@ def writeDictXML(
 # We could fix this by manually concatenating <d:entry> into one (lower cased).
 # But then, <d:entry> can only have one title.
 # The Spotlight search would disply a wrong search term (noun vs. verb issue)
-def _generateEntry(idn: int, plainTitle: str, store: Grouping) -> str:
+def _generateEntry(idn: int, plainTitle: str, data: list[Pair]) -> str:
     ''' Generate dictionary `<d:entry>` from list of `Entry`. '''
-    data = store.sortedEntries(plainTitle)
     # d:title is shown in Spotlight as search term title
     rv = f'<d:entry id="{idn}" d:title="{plainTitle}">'
 
     # d:value is what can be found by search
-    searchTerms = set([_indexSafe(plainTitle)]).union(
+    searchTerms = set([plainTitle]).union(
         _indexSafe(x.word.optional) for x in data)
     for term in sorted(searchTerms):
         if term:

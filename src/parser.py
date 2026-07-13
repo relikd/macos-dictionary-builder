@@ -46,9 +46,15 @@ def makeDictXML(
 #
 ######################################################
 
+_unsafeHtml = {
+    **dict.fromkeys(range(9)),  # delete lower control chars
+    ord('"'): '&quot;', ord('&'): '&amp;', ord('<'): '&lt;', ord('>'): '&gt;',
+}
+
+
 def _htmlSafe(txt: str) -> str:
-    return txt.replace('&', '&amp;').replace('<', '&lt;').replace(
-        '>', '&gt;').replace('"', '&quot;')
+    ''' Replace chars which are reserved in XML (`"&<>` + `ord(0-8)`). '''
+    return txt.translate(_unsafeHtml)
 
 
 def _trimWhitespace(txt: str) -> str:

@@ -3,7 +3,7 @@ import argparse
 import plistlib
 from sys import stderr
 from datetime import datetime
-from typing import Optional, NoReturn
+from typing import Optional, NoReturn, Any
 
 __all__ = ['makeMetaPlistInteractive', 'makeMetaPlistDict', 'writeMetaPlist']
 
@@ -132,7 +132,7 @@ def makeMetaPlistDict(
     # All fields allow a dash ("-") to indicate a missing value
     if not version or version == '-':
         version = TODAY
-    data = {
+    data: dict[str, Any] = {
         'CFBundleDevelopmentRegion': 'English',
         'CFBundleIdentifier': bundleId,
         'DCSDictionaryPreviewMarkupVersion': 1,  # enable Spotlight results

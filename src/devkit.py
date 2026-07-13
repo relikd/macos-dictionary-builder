@@ -95,7 +95,7 @@ def callDevKitScript(
             # "objects" dir is created at current path, change cwd accordingly
             subprocess.run([
                 cmd, '-v', os_target, 'Tmp', os.path.abspath(xml),
-                os.path.abspath(css), os.path.abspath(plist),],
+                os.path.abspath(css), os.path.abspath(plist)],
                 env=env, cwd=tmpDir, check=True,
                 stdout=subprocess.DEVNULL if logLevel >= 1 else None,
                 stderr=subprocess.DEVNULL if logLevel >= 2 else None)

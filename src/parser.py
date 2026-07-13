@@ -121,7 +121,7 @@ class Word(list[str]):
                     inbetween = False
                     chrOpen, chrClose = '', ''
         if prev <= i:
-            rv.append(raw[prev:i+1])
+            rv.append(raw[prev:i + 1])
         # hopefully, all parenthesis are balanced
         if level == 0:
             return rv
@@ -201,16 +201,16 @@ class Line:
     def __init__(self, lineNo: int, line: str):
         self.lineNo = lineNo
         parts = line.split('\t') + ['']  # categories are optional
-        assert len(parts) > 3, 'expects at least 2 tabs per line'
+        if len(parts) < 4:  # incl. +1 see above
+            raise RuntimeError('expects at least 2 tabs per line')
         self.word = Word.new(parts[0])
         self.trans = Word.new(parts[1])
         self.partOfSpeech = parts[2].strip()
         category = parts[3]
-        if len(category) < 3:
-            self.categories = []
-        else:
-            assert category[0] == '[' and category[-1] == ']'
+        if category.startswith('[') and category.endswith(']'):
             self.categories = category[1:-1].strip().split('] [')
+        else:
+            self.categories = []
 
 
 ######################################################
@@ -234,7 +234,7 @@ class Grouping(dict[str, list[Pair]]):
         backward: bool = True,
         progress: bool = True,
     ):
-        self.unreferenced = []  # type: list[Line]
+        self.unreferenced: list[Line] = []
         total = len(data)
 
         def fn(a: Word, b: Word) -> bool:
@@ -271,7 +271,7 @@ PROGRESS_INTERVAL = 0xFFF  # every 4k
 
 def readDictTxt(infile: TextIO, *, progress: bool = True) -> list['Line']:
     ''' Parse input file and generate in-memory list (calls `readlines`). '''
-    rv = []  # type: list[Line]
+    rv: list[Line] = []
     for lineNo, line in enumerate(infile.readlines(), 1):
         if progress and lineNo & PROGRESS_INTERVAL == 0:
             print(f'\rreading line {lineNo}', end='')
@@ -339,7 +339,7 @@ def _generateEntry(idn: int, plainTitle: str, data: list[Pair]) -> str:
     rv = f'<d:entry id="{idn}" d:title="{plainTitle}">'
 
     # d:value is what can be found by search
-    searchTerms = set([plainTitle]).union(
+    searchTerms = {plainTitle}.union(
         _indexSafe(x.word.optional) for x in data if not x.isAbbrev)
     for term in sorted(searchTerms):
         if term:
@@ -349,7 +349,7 @@ def _generateEntry(idn: int, plainTitle: str, data: list[Pair]) -> str:
 
     # generate visible part (in Dictionary app)
     prevTitle = Word()
-    translations = set()  # type: set[str]
+    translations: set[str] = set()
     # for entry in entries:
     for word, trans, _ in data:
         if word != prevTitle:

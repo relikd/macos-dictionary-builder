@@ -2,7 +2,7 @@
 import os
 import argparse
 from shutil import rmtree
-from .parser import makeDictXML
+from .parse import makeDictXML
 from .meta import makeMetaPlistInteractive, writeMetaPlist, TODAY
 from .devkit import callDevKitScript
 from typing import TextIO, Optional

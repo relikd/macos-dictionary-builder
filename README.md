@@ -38,11 +38,11 @@ python3 -m macos_dictionary_builder de-en.txt
 ### Python module usage
 
 ```python
-from macos_dictionary_builder import parser, meta, devkit
+from macos_dictionary_builder import parse, meta, devkit
 
 # step 1: parse translation entries
 with open('sample.txt', 'r') as fp:
-    count = parser.makeDictXML(fp, 'data.xml')
+    count = parse.makeDictXML(fp, 'data.xml')
     print(count, 'entries')
 
 # step 2: create metadata
@@ -56,7 +56,7 @@ devkit.callDevKitScript('Sample.dictionary', xml='data.xml', plist='meta.plist')
 or call the individual modules separately:
 
 ```sh
-python3 -m macos_dictionary_builder.parser sample.txt -o data.xml
+python3 -m macos_dictionary_builder.parse sample.txt -o data.xml
 python3 -m macos_dictionary_builder.meta meta.plist -b uid -n Sample ...
 python3 -m macos_dictionary_builder.devkit Sample data.xml meta.plist
 ```

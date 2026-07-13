@@ -26,19 +26,17 @@ def main() -> None:
         With this flag, the word list is parsed as-is (no reverse mapping).''')
     args = parser.parse_args()
     fname = args.outfile or (args.infile.name + '.xml')
-    makeDictXML(args.infile, fname, no_reverse=args.no_reverse)
+    makeDictXML(args.infile, fname, reverse=not args.no_reverse)
 
 
-def makeDictXML(
-    infile: TextIO, outfile: str, *, no_reverse: bool = False,
-) -> int:
+def makeDictXML(infile: TextIO, outfile: str, *, reverse: bool = True) -> int:
     '''
     This is a wrapper around `readDictTxt()` + `writeDictXML()`.
     NOTE: Closes input file automatically once it is processed.
     '''
     data = readDictTxt(infile)
     infile.close()  # close as soon as parsed to free up IO
-    return writeDictXML(data, outfile, no_reverse=no_reverse)
+    return writeDictXML(data, outfile, reverse=reverse)
 
 
 ######################################################
@@ -271,7 +269,7 @@ class Grouping(dict[str, list[Pair]]):
 PROGRESS_INTERVAL = 0xFFF  # every 4k
 
 
-def readDictTxt(infile: TextIO, progress: bool = True) -> list['Line']:
+def readDictTxt(infile: TextIO, *, progress: bool = True) -> list['Line']:
     ''' Parse input file and generate in-memory list (calls `readlines`). '''
     rv = []  # type: list[Line]
     for lineNo, line in enumerate(infile.readlines(), 1):
@@ -286,14 +284,18 @@ def readDictTxt(infile: TextIO, progress: bool = True) -> list['Line']:
 
 
 def writeDictXML(
-    data: list[Line], toFile: str, *, no_reverse: bool, progress: bool = True
+    data: list[Line],
+    toFile: str,
+    *,
+    reverse: bool = True,
+    progress: bool = True,
 ) -> int:
     ''' Iterate in-memory dictionary tree and write to file. '''
     tmp_file = toFile + '.tmp'
     if os.path.exists(tmp_file):
         os.remove(tmp_file)
 
-    grp = Grouping(data, forward=True, backward=not no_reverse, progress=progress)
+    grp = Grouping(data, forward=True, backward=reverse, progress=progress)
     total = len(grp)
     del data
 

@@ -54,6 +54,7 @@ def callDevKitScript(
     force: bool = False,
     css: str = _CSS_FILE,
     logLevel: int = 0,
+    os_target: str = '10.5',
 ) -> bool:
     '''
     Creates the final `.dictionary` bundle (last step).
@@ -65,6 +66,7 @@ def callDevKitScript(
         force : If `True`, overwrite existing `outfile`
         css : Path to custom CSS file
         logLevel : `0`: default, `1`: no stdout, `2`: + no stderr
+        os_target : determines compression level (available: 10.5, 10.6, 10.11)
 
     Returns:
         `True` if successful. `False` if already exists or shell script error.
@@ -92,7 +94,7 @@ def callDevKitScript(
         try:
             # "objects" dir is created at current path, change cwd accordingly
             subprocess.run([
-                cmd, '-v', '10.11', 'Tmp', os.path.abspath(xml),
+                cmd, '-v', os_target, 'Tmp', os.path.abspath(xml),
                 os.path.abspath(css), os.path.abspath(plist),],
                 env=env, cwd=tmpDir, check=True,
                 stdout=subprocess.DEVNULL if logLevel >= 1 else None,

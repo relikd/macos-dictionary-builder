@@ -212,6 +212,7 @@ class Line:
 class Pair(NamedTuple):
     word: Word
     trans: Word
+    isAbbrev: bool
 
 
 class Grouping(dict[str, list[Pair]]):
@@ -224,10 +225,10 @@ class Grouping(dict[str, list[Pair]]):
             ''' Returns `True` if referenced '''
             # abbreviations get their own search term
             rv = False
-            for w in [a.plain] + a.abbrevs:
+            for i, w in enumerate([a.plain] + a.abbrevs):
                 key = _indexSafe(w)
                 if key:
-                    bisect.insort(self.setdefault(key, []), Pair(a, b))
+                    bisect.insort(self.setdefault(key, []), Pair(a, b, i > 0))
                     rv = True
             return rv
 
@@ -314,7 +315,7 @@ def _generateEntry(idn: int, plainTitle: str, data: list[Pair]) -> str:
 
     # d:value is what can be found by search
     searchTerms = set([plainTitle]).union(
-        _indexSafe(x.word.optional) for x in data)
+        _indexSafe(x.word.optional) for x in data if not x.isAbbrev)
     for term in sorted(searchTerms):
         if term:
             rv += f'<d:index d:value="{term}"/>'
@@ -325,7 +326,7 @@ def _generateEntry(idn: int, plainTitle: str, data: list[Pair]) -> str:
     prevTitle = Word()
     translations = set()  # type: set[str]
     # for entry in entries:
-    for word, trans in data:
+    for word, trans, _ in data:
         if word != prevTitle:
             prevTitle = word
             rv += f'<h1>{word.styled}</h1>'

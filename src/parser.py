@@ -72,6 +72,18 @@ def _trimWhitespace(txt: str) -> str:
     return re.compile(r'[ ]{2,}').sub(' ', txt.strip())
 
 
+def _printProgress(msg: str, percent: float) -> None:
+    ''' Show progress bar: `{msg} [######  ] 75.0%` '''
+    done = '#' * int(40 * percent)
+    print(f'\r{msg} [{done:<40}] {percent:.1%}', end='')
+
+
+def _printProgressDone(msg: str) -> None:
+    ''' Set progess to 100% and end print line. '''
+    _printProgress(msg, 1.0)
+    print()
+
+
 ######################################################
 #
 #  Word (parser for a single translation string)
@@ -217,9 +229,15 @@ class Pair(NamedTuple):
 
 class Grouping(dict[str, list[Pair]]):
     def __init__(
-        self, data: list[Line], *, forward: bool = True, backward: bool = True,
+        self,
+        data: list[Line],
+        *,
+        forward: bool = True,
+        backward: bool = True,
+        progress: bool = True,
     ):
         self.unreferenced = []  # type: list[Line]
+        total = len(data)
 
         def fn(a: Word, b: Word) -> bool:
             ''' Returns `True` if referenced '''
@@ -232,11 +250,16 @@ class Grouping(dict[str, list[Pair]]):
                     rv = True
             return rv
 
-        for entry in data:
+        for i, entry in enumerate(data, 1):
+            if progress and i & PROGRESS_INTERVAL == 0:
+                _printProgress('prepare mapping', i / total)
             refA = fn(entry.word, entry.trans) if forward else False
             refB = fn(entry.trans, entry.word) if backward else False
             if not (refA or refB):
                 self.unreferenced.append(entry)
+
+        if progress:
+            _printProgressDone('prepare mapping')
 
 
 ######################################################
@@ -245,7 +268,7 @@ class Grouping(dict[str, list[Pair]]):
 #
 ######################################################
 
-PROGRESS_INTERVAL = 0x3FFF  # every 16k
+PROGRESS_INTERVAL = 0xFFF  # every 4k
 
 
 def readDictTxt(infile: TextIO, progress: bool = True) -> list['Line']:
@@ -270,9 +293,8 @@ def writeDictXML(
     if os.path.exists(tmp_file):
         os.remove(tmp_file)
 
-    if progress:
-        print('prepare translation pairs ...')
-    grp = Grouping(data, forward=True, backward=not no_reverse)
+    grp = Grouping(data, forward=True, backward=not no_reverse, progress=progress)
+    total = len(grp)
     del data
 
     with open(tmp_file, 'w', encoding='utf8') as fp:
@@ -284,12 +306,13 @@ def writeDictXML(
         for idx, key in enumerate(sorted(grp.keys()), 1):
             fp.write('\n' + _generateEntry(idx, key, grp.pop(key)))
             if progress and idx & PROGRESS_INTERVAL == 0:
-                print(f'\rwrite entry {idx}', end='')
+                _printProgress('write entries', idx / total)
 
         fp.write('\n</d:dictionary>')
 
     if progress:
-        print(f'\rdone writing. {idx} entries')
+        _printProgressDone('write entries')
+        print(f'done writing. {total} entries')
 
     # atomic write
     os.rename(tmp_file, toFile)

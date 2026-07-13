@@ -46,6 +46,7 @@ def makeDictXML(
 #
 ######################################################
 
+_unsafeIndex = str.maketrans('', '', '-‐–—\u030F')
 _unsafeHtml = {
     **dict.fromkeys(range(9)),  # delete lower control chars
     ord('"'): '&quot;', ord('&'): '&amp;', ord('<'): '&lt;', ord('>'): '&gt;',
@@ -55,6 +56,14 @@ _unsafeHtml = {
 def _htmlSafe(txt: str) -> str:
     ''' Replace chars which are reserved in XML (`"&<>` + `ord(0-8)`). '''
     return txt.translate(_unsafeHtml)
+
+
+def _indexSafe(txt: str) -> str:
+    ''' Remove chars which break Apple's dictionary builder + 64 char limit '''
+    # Apple's `build_key_index` has a limit of 127 characters.
+    # But some chars will be expanded into multiple chars (e.g., ß -> ss)
+    # The limit is for the expanded string, thus choose a lower limit
+    return _trimWhitespace(txt.translate(_unsafeIndex))[:64]
 
 
 def _trimWhitespace(txt: str) -> str:
@@ -316,11 +325,11 @@ def _generateEntry(idn: int, plainTitle: str, store: Grouping) -> str:
     rv = f'<d:entry id="{idn}" d:title="{plainTitle}">'
 
     # d:value is what can be found by search
-    searchTerms = set([plainTitle]).union(x.word.optional for x in data)
+    searchTerms = set([_indexSafe(plainTitle)]).union(
+        _indexSafe(x.word.optional) for x in data)
     for term in sorted(searchTerms):
         if term:
-            # Apple's `build_key_index` has a limit of 128 characters
-            rv += f'<d:index d:value="{term[:127]}"/>'
+            rv += f'<d:index d:value="{term}"/>'
 
     # TODO: remove verbose prefix, "to be ..."
 

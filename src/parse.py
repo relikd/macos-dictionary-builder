@@ -45,7 +45,7 @@ def makeDictXML(infile: TextIO, outfile: str, *, reverse: bool = True) -> int:
 #
 ######################################################
 
-_unsafeIndex = str.maketrans('', '', '-‐–—\u030F')
+_unsafeIndex = str.maketrans('', '', '-‐–−—\u030F')
 _unsafeHtml = {
     **dict.fromkeys(range(9)),  # delete lower control chars
     ord('"'): '&quot;', ord('&'): '&amp;', ord('<'): '&lt;', ord('>'): '&gt;',

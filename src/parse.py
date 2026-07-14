@@ -47,7 +47,12 @@ def makeDictXML(infile: TextIO, outfile: str, *, reverse: bool = True) -> int:
 
 _unsafeIndex = str.maketrans('', '', '-‐–−—\u030F')
 _unsafeHtml = {
-    **dict.fromkeys(range(9)),  # delete lower control chars
+    # delete lower control chars (except \t\n\r)
+    **dict.fromkeys(set(range(0x20)).difference([0x9, 0xA, 0xD])),
+    **dict.fromkeys(set(range(0x7F, 0xA0)).difference([0x85])),
+    # technically also the following, but a dict with 2048 keys might be slower
+    # (assuming these chars wont be used anyway)
+    # : set(range(0xD800, 0xE000)).union([0xFFFE, 0xFFFF])
     ord('"'): '&quot;', ord('&'): '&amp;', ord('<'): '&lt;', ord('>'): '&gt;',
 }
 

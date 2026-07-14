@@ -27,6 +27,8 @@ def main() -> None:
         Path to main xml data file''')
     parser.add_argument('plist', type=str, metavar='meta.plist', help='''
         Path to metadata plist file''')
+    parser.add_argument('-c', '--compress', action='store_true', help='''
+        Whether to use compression (40%% file size, 6-8x longer)''')
     parser.add_argument('-f', '--force', action='store_true', help='''
         Overwrite existing <outfile>''')
     parser.add_argument('-q', '--quiet', action='count', default=0, help='''
@@ -34,8 +36,9 @@ def main() -> None:
     parser.add_argument('-css', type=str, metavar='PATH', help='''
         Path to custom CSS file (default: %(default)s)''', default=_CSS_FILE)
     args = parser.parse_args()
-    callDevKitScript(args.outfile, xml=args.xml, plist=args.plist,
-                     css=args.css, force=args.force, logLevel=args.quiet)
+    callDevKitScript(
+        args.outfile, xml=args.xml, plist=args.plist, compress=args.compress,
+        css=args.css, force=args.force, logLevel=args.quiet)
 
 
 def extractBundledDevKit() -> None:
@@ -51,10 +54,10 @@ def callDevKitScript(
     *,
     xml: str,
     plist: str,
+    compress: bool = False,
     force: bool = False,
     css: str = _CSS_FILE,
     logLevel: int = 0,
-    os_target: str = '10.5',
 ) -> bool:
     '''
     Creates the final `.dictionary` bundle (last step).
@@ -63,10 +66,10 @@ def callDevKitScript(
         outfile : Storage path (auto-appends `.dictionary` if missing)
         xml : Path to xml file generated with `makeDictXML`
         plist : Path to plist file generated with `makeMetaPlistDict`
+        compress : Whether to use compression (40% file size, 6-8x longer)
         force : If `True`, overwrite existing `outfile`
         css : Path to custom CSS file
         logLevel : `0`: default, `1`: no stdout, `2`: + no stderr
-        os_target : determines compression level (available: 10.5, 10.6, 10.11)
 
     Returns:
         `True` if successful. `False` if already exists or shell script error.
@@ -84,6 +87,22 @@ def callDevKitScript(
         print('INFO: Dictionary Developer Kit not found. '
               f'Extracting bundled version into {DEVKIT_DIR} ...')
         extractBundledDevKit()
+
+    # Apple's `build_dict.sh` accepts "10.5", "10.6", and "10.11"
+    # The only difference between the last two, is that "10.11" creates a
+    # "Resources" subfolder and sets info.plist version to 3 (instead of 2).
+    # Apart from that, the files are identical.
+    #
+    # With a 77 MB text file (470 MB XML file):
+    #  - 10.5 takes 8 min and creates a 780 MB dictionary
+    #  - 10.11 takes 50-60 min and creates a 295 MB dictionary
+    os_target = '10.11' if compress else '10.5'
+    if logLevel == 0:
+        print('Using compression:', 'YES' if compress else 'NO')
+        if compress:
+            print('NOTE: this may take a very long time (for large files ~1h)')
+        else:
+            print('NOTE: this may take a long time (for large files ~8min)')
 
     # prevent xsltproc from connecting to the internet [optional]
     env = os.environ.copy()

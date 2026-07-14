@@ -50,7 +50,7 @@ plist = meta.makeMetaPlistDict('bundleId', name='...', ...)
 meta.writeMetaPlist('meta.plist', plist)
 
 # step 3: create dictionary
-devkit.callDevKitScript('Sample.dictionary', xml='data.xml', plist='meta.plist')
+devkit.callDevKitScript('Sample.dictionary', xml='data.xml', plist='meta.plist', compress=True)
 ```
 
 or call the individual modules separately:
@@ -58,7 +58,7 @@ or call the individual modules separately:
 ```sh
 python3 -m macos_dictionary_builder.parse sample.txt -o data.xml
 python3 -m macos_dictionary_builder.meta meta.plist -b uid -n Sample ...
-python3 -m macos_dictionary_builder.devkit Sample data.xml meta.plist
+python3 -m macos_dictionary_builder.devkit Sample data.xml meta.plist --compress
 ```
 
 

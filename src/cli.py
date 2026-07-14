@@ -64,7 +64,8 @@ def runDictPipeline(
 
     print()
     print('[3/3] Generate dictionary ...')
-    if not callDevKitScript(dict_file, xml=xml_file, plist=plist_file):
+    if not callDevKitScript(dict_file, xml=xml_file, plist=plist_file,
+                            compress=True):
         exit(1)
 
     print()

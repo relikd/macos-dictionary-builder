@@ -28,7 +28,7 @@ def main() -> None:
     parser.add_argument('plist', type=str, metavar='meta.plist', help='''
         Path to metadata plist file''')
     parser.add_argument('-c', '--compress', action='store_true', help='''
-        Whether to use compression (40%% file size, 6-8x longer)''')
+        Whether to use compression (much slower but 40%% file size)''')
     parser.add_argument('-f', '--force', action='store_true', help='''
         Overwrite existing <outfile>''')
     parser.add_argument('-q', '--quiet', action='count', default=0, help='''
@@ -66,7 +66,7 @@ def callDevKitScript(
         outfile : Storage path (auto-appends `.dictionary` if missing)
         xml : Path to xml file generated with `makeDictXML`
         plist : Path to plist file generated with `makeMetaPlistDict`
-        compress : Whether to use compression (40% file size, 6-8x longer)
+        compress : Whether to use compression (much slower but 40% file size)
         force : If `True`, overwrite existing `outfile`
         css : Path to custom CSS file
         logLevel : `0`: default, `1`: no stdout, `2`: + no stderr

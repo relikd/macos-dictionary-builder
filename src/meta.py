@@ -47,14 +47,14 @@ def main() -> None:
         data = makeMetaPlistInteractive(
             bundleId=args.bundleId, name=args.name, version=args.version,
             desc=args.description, extra_info=args.extra_info, lang=args.lang,
-            no_reverse=args.no_reverse, frontmatter=args.frontmatter)
+            reverse=not args.no_reverse, frontmatter=args.frontmatter)
     else:
         if not args.bundleId:
             _fatal('bundleId is mandatory in non-interactive mode')
         data = makeMetaPlistDict(
             args.bundleId, name=args.name, version=args.version,
             desc=args.description, extra_info=args.extra_info, lang=args.lang,
-            no_reverse=args.no_reverse, frontmatter=args.frontmatter)
+            reverse=not args.no_reverse, frontmatter=args.frontmatter)
 
     writeMetaPlist(args.outfile, data)
 
@@ -67,7 +67,7 @@ def makeMetaPlistInteractive(
     desc: Optional[str] = None,
     extra_info: Optional[str] = None,
     lang: Optional[tuple[str, str]] = None,
-    no_reverse: bool = False,  # pass-through / no user-input
+    reverse: bool = True,  # pass-through / no user-input
     frontmatter: bool = False,  # pass-through / no user-input
 ) -> dict:
     '''
@@ -102,7 +102,7 @@ def makeMetaPlistInteractive(
 
     return makeMetaPlistDict(
         bundleId, name=name, version=version, desc=desc, lang=lang,
-        extra_info=extra_info, no_reverse=no_reverse, frontmatter=frontmatter)
+        extra_info=extra_info, reverse=reverse, frontmatter=frontmatter)
 
 
 def makeMetaPlistDict(
@@ -113,7 +113,7 @@ def makeMetaPlistDict(
     desc: Optional[str] = None,
     extra_info: Optional[str] = None,
     lang: Optional[tuple[str, str]] = None,
-    no_reverse: bool = False,
+    reverse: bool = True,
     frontmatter: bool = False,
 ) -> dict:
     '''
@@ -125,7 +125,7 @@ def makeMetaPlistDict(
         version : If none provided, use current date in iso format
         desc : Text visible in settings (dictionary info box)
         lang : Also visible in settings (in parenthesis after dict name)
-        no_reverse : Omits the reverse translation pair (de-en but not en-de)
+        reverse : If `False`, omit reverse translation (de-en but not en-de)
         frontmatter : Enables front-/backmatter. Requires a new XML entry:
                 `<d:entry id="front_back_matter" d:title="..">..</d:entry>`
     '''
@@ -158,7 +158,7 @@ def makeMetaPlistDict(
                 'DCSDictionaryIndexLanguage': x,
                 'DCSDictionaryDescriptionLanguage': y,
             }
-            for x, y in ([lang] if no_reverse else [lang, lang[::-1]])
+            for x, y in ([lang, lang[::-1]] if reverse else [lang])
         ]
 
     # if an XML entry exists, this adds the `Go > Front/Back Matter` option

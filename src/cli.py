@@ -20,11 +20,11 @@ def main() -> None:
         By default, this script creates a reverse translation for all entries.
         With this flag, the word list is parsed as-is (no reverse mapping).''')
     args = parser.parse_args()
-    runDictPipeline(args.infile, args.outdir, no_reverse=args.no_reverse)
+    runDictPipeline(args.infile, args.outdir, reverse=not args.no_reverse)
 
 
 def runDictPipeline(
-    infile: TextIO, outdir: Optional[str] = None, *, no_reverse: bool = False,
+    infile: TextIO, outdir: Optional[str] = None, *, reverse: bool = True,
 ) -> None:
     '''
     Generates XML and meta plist files (in interactive mode).
@@ -37,8 +37,7 @@ def runDictPipeline(
 
     Args:
         outdir : If empty, use same dir as input file.
-        force : If `True`, overwrite existing dictionaries without asking.
-        no_reverse : If `True`, generate only one way translations.
+        reverse : If `False`, generate only one way translations.
     '''
     outdir = outdir or os.path.dirname(infile.name)
     workdir = os.path.join(outdir, os.path.basename(infile.name) + '.tmp')
@@ -53,13 +52,13 @@ def runDictPipeline(
 
     print('[1/3] Generate XML: data.xml ...')
     # NOTE: "infile" is auto-closed after this call
-    entryCount = makeDictXML(infile, xml_file, no_reverse=no_reverse)
+    entryCount = makeDictXML(infile, xml_file, reverse=reverse)
     print(f'=> {entryCount} entries')
 
     print()
     print('[2/3] Generate metadata: meta.plist ...')
     plistDict = makeMetaPlistInteractive(
-        version=TODAY, no_reverse=no_reverse,
+        version=TODAY, reverse=reverse,
         extra_info=f'Generated on {TODAY} ({entryCount} entries)')
     writeMetaPlist(plist_file, plistDict)
 

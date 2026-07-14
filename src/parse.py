@@ -202,7 +202,8 @@ class Line:
         self.lineNo = lineNo
         parts = line.split('\t') + ['']  # categories are optional
         if len(parts) < 4:  # incl. +1 see above
-            raise RuntimeError('expects at least 2 tabs per line')
+            msg = f'expects at least 2 tabs per line (line {lineNo})'
+            raise RuntimeError(msg)
         self.word = Word.new(parts[0])
         self.trans = Word.new(parts[1])
         self.partOfSpeech = parts[2].strip()

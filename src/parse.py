@@ -4,7 +4,7 @@ import re
 import bisect
 import argparse
 from dataclasses import dataclass
-from typing import TextIO, NamedTuple
+from typing import TextIO, NamedTuple, Iterator, Iterable
 
 __all__ = ['makeDictXML', 'readDictTxt', 'writeDictXML',
            'Word', 'Line', 'Pair', 'Grouping']
@@ -32,11 +32,8 @@ def main() -> None:
 def makeDictXML(infile: TextIO, outfile: str, *, reverse: bool = True) -> int:
     '''
     This is a wrapper around `readDictTxt()` + `writeDictXML()`.
-    NOTE: Closes input file automatically once it is processed.
     '''
-    data = readDictTxt(infile)
-    infile.close()  # close as soon as parsed to free up IO
-    return writeDictXML(data, outfile, reverse=reverse)
+    return writeDictXML(readDictTxt(infile), outfile, reverse=reverse)
 
 
 ######################################################
@@ -234,14 +231,12 @@ class Pair(NamedTuple):
 class Grouping(dict[str, list[Pair]]):
     def __init__(
         self,
-        data: list[Line],
+        data: Iterable[Line],
         *,
         forward: bool = True,
         backward: bool = True,
-        progress: bool = True,
     ):
         self.unreferenced: list[Line] = []
-        total = len(data)
 
         def fn(a: Word, b: Word) -> bool:
             ''' Returns `True` if referenced '''
@@ -254,16 +249,11 @@ class Grouping(dict[str, list[Pair]]):
                     rv = True
             return rv
 
-        for i, entry in enumerate(data, 1):
-            if progress and i & PROGRESS_INTERVAL == 0:
-                _printProgress('prepare mapping', i / total)
+        for entry in data:
             refA = fn(entry.word, entry.trans) if forward else False
             refB = fn(entry.trans, entry.word) if backward else False
             if not (refA or refB):
                 self.unreferenced.append(entry)
-
-        if progress:
-            _printProgressDone('prepare mapping')
 
 
 ######################################################
@@ -275,22 +265,31 @@ class Grouping(dict[str, list[Pair]]):
 PROGRESS_INTERVAL = 0xFFF  # every 4k
 
 
-def readDictTxt(infile: TextIO, *, progress: bool = True) -> list['Line']:
-    ''' Parse input file and generate in-memory list (calls `readlines`). '''
-    rv: list[Line] = []
-    for lineNo, line in enumerate(infile.readlines(), 1):
+def readDictTxt(infile: TextIO, *, progress: bool = True) -> Iterator['Line']:
+    '''
+    Parse input file and generate in-memory list (calls `readlines`).
+
+    Yields
+        In-memory data structure `Line` by line
+    '''
+    filesize = os.fstat(infile.fileno()).st_size
+    lineNo = 0
+    line = infile.readline()
+    while line:
         if progress and lineNo & PROGRESS_INTERVAL == 0:
-            print(f'\rreading line {lineNo}', end='')
+            _printProgress('reading lines', infile.tell() / filesize)
         line = line.strip(' \n\r')  # keep tabs
         if line and not line.startswith('#'):  # ignore empty & comments
-            rv.append(Line(lineNo, line))
+            lineNo += 1
+            yield Line(lineNo, line)
+        line = infile.readline()
     if progress:
+        _printProgressDone('reading lines')
         print(f'\rdone reading. {lineNo} lines')
-    return rv
 
 
 def writeDictXML(
-    data: list[Line],
+    data: Iterable[Line],
     toFile: str,
     *,
     reverse: bool = True,
@@ -301,7 +300,7 @@ def writeDictXML(
     if os.path.exists(tmp_file):
         os.remove(tmp_file)
 
-    grp = Grouping(data, forward=True, backward=reverse, progress=progress)
+    grp = Grouping(data, forward=True, backward=reverse)
     total = len(grp)
     del data
 

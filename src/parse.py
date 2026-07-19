@@ -6,7 +6,7 @@ import argparse
 from dataclasses import dataclass
 from typing import TextIO, NamedTuple, Iterator, Iterable
 
-__all__ = ['makeDictXML', 'readDictTxt', 'writeDictXML',
+__all__ = ['makeDictXML', 'readDictTxt', 'groupDictKeys', 'writeDictXML',
            'Word', 'Line', 'Pair', 'Grouping']
 
 _PARENS_PAIR_LOOKUP = {
@@ -31,9 +31,10 @@ def main() -> None:
 
 def makeDictXML(infile: TextIO, outfile: str, *, reverse: bool = True) -> int:
     '''
-    This is a wrapper around `readDictTxt()` + `writeDictXML()`.
+    A wrapper around `readDictTxt()` + `groupDictKeys()` + `writeDictXML()`.
     '''
-    return writeDictXML(readDictTxt(infile), outfile, reverse=reverse)
+    grouping = groupDictKeys(readDictTxt(infile), reverse=reverse)
+    return writeDictXML(grouping, outfile)
 
 
 ######################################################
@@ -288,21 +289,21 @@ def readDictTxt(infile: TextIO, *, progress: bool = True) -> Iterator['Line']:
         print(f'\rdone reading. {lineNo} lines')
 
 
-def writeDictXML(
-    data: Iterable[Line],
-    toFile: str,
-    *,
-    reverse: bool = True,
-    progress: bool = True,
-) -> int:
+def groupDictKeys(data: Iterable[Line], *, reverse: bool = True) -> Grouping:
+    '''
+    Iterate over all `Line` and group by plain / simple name.
+
+    Params:
+        reverse : If `True`, include reverse mapping (de>en + en>de)
+    '''
+    return Grouping(data, forward=True, backward=reverse)
+
+
+def writeDictXML(data: Grouping, toFile: str, *, progress: bool = True) -> int:
     ''' Iterate in-memory dictionary tree and write to file. '''
     tmp_file = toFile + '.tmp'
     if os.path.exists(tmp_file):
         os.remove(tmp_file)
-
-    grp = Grouping(data, forward=True, backward=reverse)
-    total = len(grp)
-    del data
 
     with open(tmp_file, 'w', encoding='utf8') as fp:
         fp.write('''
@@ -310,8 +311,9 @@ def writeDictXML(
 <d:dictionary xmlns="http://www.w3.org/1999/xhtml" xmlns:d="http://www.apple.com/DTDs/DictionaryService-1.0.rng">
 '''.strip())
 
-        for idx, key in enumerate(sorted(grp.keys()), 1):
-            fp.write('\n' + _generateEntry(idx, key, grp.pop(key)))
+        total = len(data)
+        for idx, key in enumerate(sorted(data.keys()), 1):
+            fp.write('\n' + _generateEntry(idx, key, data.pop(key)))
             if progress and idx & PROGRESS_INTERVAL == 0:
                 _printProgress('write entries', idx / total)
 
@@ -324,9 +326,9 @@ def writeDictXML(
     # atomic write
     os.rename(tmp_file, toFile)
 
-    if grp.unreferenced:
+    if data.unreferenced:
         print('WARN: {} unreferenced entries: (line no: {})'.format(
-            len(grp.unreferenced), [x.lineNo for x in grp.unreferenced]))
+            len(data.unreferenced), [x.lineNo for x in data.unreferenced]))
     return idx
 
 

@@ -43,7 +43,7 @@ def makeDictXML(infile: TextIO, outfile: str, *, reverse: bool = True) -> int:
 #
 ######################################################
 
-_unsafeIndex = str.maketrans('', '', '-‐–−—\u030F')
+_unsafeIndex = str.maketrans('', '', '-‐–−—\u030F®©™')
 _unsafeHtml = {
     # delete lower control chars (except \t\n\r)
     **dict.fromkeys(set(range(0x20)).difference([0x9, 0xA, 0xD])),
@@ -65,6 +65,8 @@ def _indexSafe(txt: str) -> str:
     # Apple's `build_key_index` has a limit of 127 characters.
     # But some chars will be expanded into multiple chars (e.g., ß -> ss)
     # The limit is for the expanded string, thus choose a lower limit
+    if len(txt) == 1 and txt in '®©™':
+        return txt
     return _trimWhitespace(txt.translate(_unsafeIndex))[:64]
 
 

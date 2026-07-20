@@ -7,7 +7,7 @@ and this project does adhere to [Semantic Versioning](https://semver.org/spec/v2
 
 ## [0.9.3] – 2026-07-20
 ### Changed
-- `readDictTxt` returns an iterator instead of a list
+- `readDictTxt` returns an iterator instead of a list (uses 30% less RAM!)
 - new intermediate parse step `groupDictKeys` (e.g., filter grouping before write)
 
 
